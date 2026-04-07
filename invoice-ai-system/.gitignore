@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Env
+.env
+backend/.env
+/invoenv
+
+# Uploads
+backend/uploads/
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/build/
+.npm/
+
+# DB
+*.sqlite3
+pgdata/
+
+# IDE
+.vscode/
+.idea/
+*.DS_Store
+
+# Logs
+*.log
