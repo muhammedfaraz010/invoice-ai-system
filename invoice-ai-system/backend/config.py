@@ -1,14 +1,15 @@
-from pydantic_settings import BaseSettings
-from functools import lru_cache
 import os
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # xAI Grok
-    xai_api_key: str = ""
-    grok_model: str = "grok-1"
+    # Groq
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.3-70b-versatile"
 
-    # OpenAI (for embeddings)
+    # OpenAI (for embeddings and optional modules)
     openai_api_key: str = ""
     openai_model: str = "gpt-4o"
 
@@ -46,7 +47,7 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",")]
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
 
 @lru_cache()
@@ -55,6 +56,4 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
-
-# Ensure upload directory exists
 os.makedirs(settings.upload_dir, exist_ok=True)
