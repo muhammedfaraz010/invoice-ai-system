@@ -1,157 +1,127 @@
-"""
-RAG (Retrieval-Augmented Generation) Engine
-Answers natural language queries about invoices using vector search + LLM.
-"""
-import logging
-from typing import Optional
-from sqlalchemy.orm import Session
+from sentence_transformers import SentenceTransformer
+import numpy as np
+from database.db import SessionLocal
+from models.schemas import Invoice
+from groq import Groq
+import os
 
-from config import settings
-from modules.embeddings import embedding_store
-from database.db import Invoice
+# ================= INIT =================
+model = SentenceTransformer("all-MiniLM-L6-v2")
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-logger = logging.getLogger(__name__)
-
-RAG_SYSTEM_PROMPT = """
-You are an intelligent invoice assistant for a financial document management system.
-You have access to invoice data retrieved from a vector database.
-
-Your job:
-- Answer questions about invoices accurately and concisely.
-- Use the provided context (retrieved invoice records) to answer.
-- If the answer is not in the context, say "I don't have enough data to answer that."
-- Format currency as ₹ (Indian Rupees) with commas (e.g., ₹1,25,000).
-- For lists, use bullet points.
-- Be factual — do not guess.
-
-Context (Retrieved Invoice Records):
-{context}
-"""
+embeddings = []
+invoice_objects = []
 
 
-class RAGEngine:
-    def __init__(self):
-        self.client = None
-        if settings.xai_api_key:
-            from openai import OpenAI
-            self.client = OpenAI(
-                api_key=settings.xai_api_key,
-                base_url="https://api.x.ai/v1"
-            )
+# ================= BUILD INDEX =================
+def build_index():
+    global embeddings, invoice_objects
 
-    # ──────────────────────────────────────────
-    # Main Query
-    # ──────────────────────────────────────────
+    db = SessionLocal()
+    invoices = db.query(Invoice).all()
 
-    def query(self, question: str, db: Session) -> dict:
-        """Full RAG pipeline: retrieve → augment → generate."""
+    embeddings = []
+    invoice_objects = []
 
-        # Step 1: Retrieve relevant invoice chunks from vector DB
-        matches = embedding_store.search(question, top_k=5)
+    for inv in invoices:
+        text = f"""
+        Invoice {inv.invoice_number}
+        Vendor {inv.vendor_name}
+        Amount {inv.total_amount} {inv.currency}
+        Date {inv.invoice_date}
+        """
 
-        # Step 2: Augment with structured DB data for richer context
-        context_parts = []
-        sources = []
+        emb = model.encode(text)
 
-        if matches:
-            invoice_ids = [m["invoice_id"] for m in matches]
-            invoices = db.query(Invoice).filter(Invoice.id.in_(invoice_ids)).all()
-            inv_map = {inv.id: inv for inv in invoices}
+        embeddings.append(emb)
+        invoice_objects.append(inv)
 
-            for match in matches:
-                inv = inv_map.get(match["invoice_id"])
-                if inv:
-                    context_parts.append(self._format_invoice_context(inv))
-                    sources.append(
-                        {
-                            "invoice_id": inv.id,
-                            "invoice_number": inv.invoice_number,
-                            "vendor_name": inv.vendor_name,
-                            "relevance_score": match["score"],
-                        }
-                    )
-        else:
-            # Fallback: keyword-based DB search
-            invoices = self._keyword_search(question, db)
-            for inv in invoices:
-                context_parts.append(self._format_invoice_context(inv))
-                sources.append(
-                    {
-                        "invoice_id": inv.id,
-                        "invoice_number": inv.invoice_number,
-                        "vendor_name": inv.vendor_name,
-                        "relevance_score": 0.5,
-                    }
-                )
-
-        # Step 3: Generate answer
-        context = "\n\n---\n\n".join(context_parts) if context_parts else "No relevant invoices found."
-
-        if not self.client:
-            return {
-                "answer": f"LLM not configured. Based on search, I found {len(sources)} relevant invoice(s).",
-                "sources": sources,
-            }
-
-        answer = self._generate_answer(question, context)
-        return {"answer": answer, "sources": sources}
-
-    # ──────────────────────────────────────────
-    # Helpers
-    # ──────────────────────────────────────────
-
-    def _generate_answer(self, question: str, context: str) -> str:
-        try:
-            response = self.client.chat.completions.create(
-                model=settings.grok_model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": RAG_SYSTEM_PROMPT.format(context=context),
-                    },
-                    {"role": "user", "content": question},
-                ],
-                temperature=0.2,
-                max_tokens=800,
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            logger.error(f"LLM generation failed: {e}")
-            return f"Error generating answer: {str(e)}"
-
-    def _format_invoice_context(self, inv: Invoice) -> str:
-        lines = [
-            f"Invoice ID: {inv.id}",
-            f"Invoice Number: {inv.invoice_number or 'N/A'}",
-            f"Vendor: {inv.vendor_name or 'N/A'}",
-            f"Vendor GSTIN: {inv.vendor_gstin or 'N/A'}",
-            f"Buyer: {inv.buyer_name or 'N/A'}",
-            f"Date: {inv.invoice_date or 'N/A'}",
-            f"Total Amount: ₹{inv.total_amount or 'N/A'}",
-            f"Tax Amount: ₹{inv.tax_amount or 'N/A'}",
-            f"Currency: {inv.currency}",
-            f"Validation: {inv.validation_status}",
-            f"Duplicate: {'Yes' if inv.is_duplicate else 'No'}",
-        ]
-        if inv.line_items:
-            lines.append(f"Line Items: {len(inv.line_items)} items")
-        return "\n".join(lines)
-
-    def _keyword_search(self, question: str, db: Session, limit: int = 5) -> list:
-        """Simple text-based fallback search on vendor name and invoice number."""
-        words = question.lower().split()
-        invoices = db.query(Invoice).filter(Invoice.extraction_status == "success").all()
-        scored = []
-        for inv in invoices:
-            score = 0
-            text = f"{inv.vendor_name or ''} {inv.invoice_number or ''}".lower()
-            for word in words:
-                if word in text:
-                    score += 1
-            if score > 0:
-                scored.append((score, inv))
-        scored.sort(key=lambda x: x[0], reverse=True)
-        return [inv for _, inv in scored[:limit]]
+    db.close()
 
 
-rag_engine = RAGEngine()
+# ================= CURRENCY SYMBOL =================
+def get_symbol(currency):
+    return {
+        "INR": "₹",
+        "AED": "AED",
+        "USD": "$"
+    }.get(currency, currency)
+
+
+# ================= QUERY =================
+def query_rag(query):
+    global embeddings, invoice_objects
+
+    if not embeddings:
+        return "❌ No invoice data available."
+
+    query_emb = model.encode(query)
+
+    scores = np.dot(embeddings, query_emb)
+    top_indices = np.argsort(scores)[-3:][::-1]
+
+    # ================= BUILD CONTEXT =================
+    context_lines = []
+    amounts = []
+
+    for i in top_indices:
+        inv = invoice_objects[i]
+
+        symbol = get_symbol(inv.currency)
+
+        context_lines.append(
+            f"Invoice {inv.invoice_number} from {inv.vendor_name} is {symbol}{inv.total_amount}"
+        )
+
+        if inv.total_amount:
+            amounts.append(inv.total_amount)
+
+    context = "\n".join(context_lines)
+
+    # ================= SMART INSIGHTS =================
+    insight_text = ""
+
+    if amounts:
+        total = sum(amounts)
+        highest = max(amounts)
+        lowest = min(amounts)
+        avg = round(total / len(amounts), 2)
+
+        insight_text = f"""
+        Summary:
+        - Total Amount: {total}
+        - Highest Invoice: {highest}
+        - Lowest Invoice: {lowest}
+        - Average: {avg}
+        """
+
+    # ================= LLM PROMPT =================
+    prompt = f"""
+    You are a professional financial AI assistant.
+
+    Context:
+    {context}
+
+    {insight_text}
+
+    Question:
+    {query}
+
+    Instructions:
+    - Answer clearly and professionally
+    - Use correct currency symbols (₹, AED, $)
+    - If multiple invoices exist, summarize totals
+    - Highlight insights (highest, lowest, trends)
+    - Keep answer concise but intelligent
+
+    Answer:
+    """
+
+    # ================= LLM CALL =================
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2,
+    )
+
+    return response.choices[0].message.content

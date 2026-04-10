@@ -8,6 +8,8 @@ from datetime import datetime
 import uuid
 
 from config import settings
+from sqlalchemy import Integer
+
 
 engine = create_engine(settings.database_url, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -95,8 +97,8 @@ class User(Base):
 class AgentAction(Base):
     __tablename__ = "agent_actions"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    invoice_id = Column(String, ForeignKey("invoices.id"))
+    id = Column(Integer,primary_key=True,index=True)
+    invoice_id = Column(Integer)
     action_type = Column(String)          # duplicate_alert / missing_gst / high_value_approval
     action_status = Column(String, default="triggered")   # triggered/resolved/dismissed
     message = Column(Text)

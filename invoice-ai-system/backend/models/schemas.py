@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
+# ================== Pydantic Models ==================
+
+from pydantic import BaseModel
 from typing import Optional, List, Any
-from datetime import datetime
 
 
 class LineItem(BaseModel):
@@ -31,26 +32,22 @@ class ValidationResult(BaseModel):
     errors: List[str] = []
     warnings: List[str] = []
     is_duplicate: bool = False
-    duplicate_of: Optional[str] = None
+    duplicate_of: Optional[int] = None   # ✅ FIXED TYPE
 
 
 class InvoiceResponse(BaseModel):
-    id: str
-    filename: str
-    upload_time: str
+    id: int
+    filename: Optional[str]
+    upload_time: Optional[str]
     invoice_number: Optional[str]
     vendor_name: Optional[str]
-    vendor_gstin: Optional[str]
     invoice_date: Optional[str]
     total_amount: Optional[float]
-    tax_amount: Optional[float]
     currency: str
-    extraction_status: str
-    validation_status: str
-    validation_errors: Optional[Any]
+    extraction_status: Optional[str]
+    validation_status: Optional[str]
     is_duplicate: bool
     embedding_stored: bool
-    processing_time_ms: Optional[int]
 
 
 class ChatRequest(BaseModel):
@@ -91,3 +88,53 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     role: str
+
+
+# ================== SQLAlchemy Model ==================
+
+from sqlalchemy import Column, Integer, String, Float, Boolean, JSON
+from database.db import Base
+
+
+class Invoice(Base):
+    __tablename__ = "invoices"
+    __table_args__ = {"extend_existing": True}
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    filename = Column(String)
+    file_path = Column(String)
+    upload_time = Column(String)
+
+    invoice_number = Column(String)
+    vendor_name = Column(String)
+    vendor_gstin = Column(String)
+
+    buyer_name = Column(String)
+    buyer_gstin = Column(String)
+
+    invoice_date = Column(String)
+    due_date = Column(String)
+
+    total_amount = Column(Float)
+    tax_amount = Column(Float)
+    subtotal = Column(Float)
+
+    currency = Column(String, default="INR")
+
+    line_items = Column(JSON)
+
+    ocr_text = Column(String)
+
+    extraction_status = Column(String, default="pending")
+    validation_status = Column(String, default="pending")
+
+    validation_errors = Column(JSON)
+
+    is_duplicate = Column(Boolean, default=False)
+    duplicate_of = Column(Integer)   # ✅ FIXED HERE
+
+    embedding_stored = Column(Boolean, default=False)
+    raw_extraction = Column(JSON)
+
+    processing_time_ms = Column(Integer)

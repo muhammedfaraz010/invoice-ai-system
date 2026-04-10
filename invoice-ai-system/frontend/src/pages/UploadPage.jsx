@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import {
-  Upload, FileText, CheckCircle, XCircle, Loader, AlertCircle, Eye
+  Upload, FileText, CheckCircle, XCircle, Loader, AlertCircle,
 } from "lucide-react";
 import { uploadInvoice, getInvoice } from "../services/api";
 import toast from "react-hot-toast";
@@ -16,14 +16,15 @@ const STATUS_ICONS = {
 export default function UploadPage() {
   const [uploads, setUploads] = useState([]);
 
-  const updateUpload = (id, patch) =>
-    setUploads(prev => prev.map(u => u.id === id ? { ...u, ...patch } : u));
+  const updateUpload = (id, patch) => (
+    setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, ...patch } : u)))
+  );
 
   const pollStatus = async (uploadId, invoiceId) => {
     let attempts = 0;
-    const maxAttempts = 30; // 60 seconds
+    const maxAttempts = 30;
     const poll = setInterval(async () => {
-      attempts++;
+      attempts += 1;
       try {
         const res = await getInvoice(invoiceId);
         const inv = res.data;
@@ -39,7 +40,9 @@ export default function UploadPage() {
             toast.error("Invoice processing failed.");
           }
         }
-      } catch {/* ignore */}
+      } catch {
+        // Ignore polling errors while the backend is still processing.
+      }
       if (attempts >= maxAttempts) {
         clearInterval(poll);
         updateUpload(uploadId, { status: "failed" });
@@ -49,9 +52,13 @@ export default function UploadPage() {
 
   const processFile = async (file) => {
     const uploadId = `${Date.now()}-${Math.random()}`;
-    setUploads(prev => [{
-      id: uploadId, name: file.name, size: file.size,
-      status: "uploading", progress: 0, invoice: null
+    setUploads((prev) => [{
+      id: uploadId,
+      name: file.name,
+      size: file.size,
+      status: "uploading",
+      progress: 0,
+      invoice: null,
     }, ...prev]);
 
     try {
@@ -76,20 +83,19 @@ export default function UploadPage() {
     multiple: true,
   });
 
-  const fmtSize = (bytes) => bytes > 1024 * 1024
+  const fmtSize = (bytes) => (bytes > 1024 * 1024
     ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-    : `${(bytes / 1024).toFixed(0)} KB`;
+    : `${(bytes / 1024).toFixed(0)} KB`);
 
   return (
     <div className="p-6 space-y-6 max-w-3xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Upload Invoices</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Drag & drop PDF or image files. AI will extract and validate automatically.
+          Drag &amp; drop PDF or image files. AI will extract and validate automatically.
         </p>
       </div>
 
-      {/* Dropzone */}
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors ${
@@ -104,10 +110,9 @@ export default function UploadPage() {
           {isDragActive ? "Drop files here..." : "Drag & drop invoices here"}
         </p>
         <p className="text-sm text-gray-400 mt-1">or click to browse files</p>
-        <p className="text-xs text-gray-400 mt-3">PDF, PNG, JPG supported • Max 20MB per file</p>
+        <p className="text-xs text-gray-400 mt-3">PDF, PNG, JPG supported. Max 20MB per file.</p>
       </div>
 
-      {/* Upload Queue */}
       {uploads.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
@@ -127,7 +132,6 @@ export default function UploadPage() {
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">{fmtSize(u.size)}</p>
 
-                  {/* Progress Bar */}
                   {(u.status === "uploading" || u.status === "processing") && (
                     <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       <div
@@ -141,21 +145,24 @@ export default function UploadPage() {
                     </div>
                   )}
 
-                  {/* Result */}
                   {u.status === "success" && u.invoice && (
                     <div className="mt-3 bg-green-50 rounded-lg p-3 text-xs space-y-1">
                       <div className="flex items-center gap-1.5 text-green-700 font-medium mb-2">
                         <CheckCircle size={13} /> Extracted Successfully
                       </div>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-gray-600">
-                        <span>Invoice #: <strong>{u.invoice.invoice_number || "—"}</strong></span>
-                        <span>Vendor: <strong>{u.invoice.vendor_name || "—"}</strong></span>
-                        <span>Date: <strong>{u.invoice.invoice_date || "—"}</strong></span>
-                        <span>Amount: <strong>₹{Number(u.invoice.total_amount || 0).toLocaleString("en-IN")}</strong></span>
-                        <span>GSTIN: <strong>{u.invoice.vendor_gstin || "—"}</strong></span>
-                        <span>Status: <strong className={u.invoice.validation_status === "valid" ? "text-green-600" : "text-red-600"}>
-                          {u.invoice.validation_status}
-                        </strong></span>
+                        <span>Invoice #: <strong>{u.invoice.invoice_number || "--"}</strong></span>
+                        <span>Vendor: <strong>{u.invoice.vendor_name || "--"}</strong></span>
+                        <span>Date: <strong>{u.invoice.invoice_date || "--"}</strong></span>
+                        <span>Amount: <strong>{`Rs ${Number(u.invoice.total_amount || 0).toLocaleString("en-IN")}`}</strong></span>
+                        <span>GSTIN: <strong>{u.invoice.vendor_gstin || "--"}</strong></span>
+                        <span>
+                          Status:
+                          {" "}
+                          <strong className={u.invoice.validation_status === "valid" ? "text-green-600" : "text-red-600"}>
+                            {u.invoice.validation_status}
+                          </strong>
+                        </span>
                       </div>
                       {u.invoice.is_duplicate && (
                         <div className="mt-2 flex items-center gap-1.5 text-orange-600 font-medium">
@@ -177,14 +184,13 @@ export default function UploadPage() {
         </div>
       )}
 
-      {/* Tips */}
       <div className="card bg-blue-50 border-blue-100">
         <h3 className="text-sm font-semibold text-blue-800 mb-2">Tips for best results</h3>
         <ul className="text-sm text-blue-700 space-y-1">
-          <li>• Use clear, high-resolution scans (300 DPI or higher)</li>
-          <li>• Ensure invoice text is not rotated or skewed</li>
-          <li>• Indian GST invoices are supported with GSTIN validation</li>
-          <li>• Supported: PDF, PNG, JPG formats</li>
+          <li>- Use clear, high-resolution scans (300 DPI or higher)</li>
+          <li>- Ensure invoice text is not rotated or skewed</li>
+          <li>- Indian GST invoices are supported with GSTIN validation</li>
+          <li>- Supported: PDF, PNG, JPG formats</li>
         </ul>
       </div>
     </div>

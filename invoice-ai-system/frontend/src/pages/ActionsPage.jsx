@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getAgentActions, resolveAction } from "../services/api";
 import {
-  Bell, AlertTriangle, CheckCircle, Copy, TrendingUp,
-  RefreshCw, Filter
+  Bell, AlertTriangle, CheckCircle, Copy, TrendingUp, RefreshCw,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -47,29 +46,35 @@ export default function ActionsPage() {
     try {
       const res = await getAgentActions(filter ? { status: filter } : {});
       setActions(res.data);
-    } catch { toast.error("Failed to load actions"); }
-    finally { setLoading(false); }
+    } catch {
+      toast.error("Failed to load actions");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { load(); }, [filter]);
+  useEffect(() => {
+    load();
+  }, [filter]);
 
   const handleResolve = async (id) => {
     try {
       await resolveAction(id);
       toast.success("Action resolved");
       load();
-    } catch { toast.error("Failed to resolve"); }
+    } catch {
+      toast.error("Failed to resolve");
+    }
   };
 
   const counts = {
     all: actions.length,
-    triggered: actions.filter(a => a.action_status === "triggered").length,
-    resolved: actions.filter(a => a.action_status === "resolved").length,
+    triggered: actions.filter((a) => a.action_status === "triggered").length,
+    resolved: actions.filter((a) => a.action_status === "resolved").length,
   };
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Agent Actions</h1>
@@ -80,13 +85,12 @@ export default function ActionsPage() {
         </button>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: "Total Actions", value: counts.all, color: "text-gray-700", bg: "bg-gray-50" },
           { label: "Pending", value: counts.triggered, color: "text-orange-600", bg: "bg-orange-50" },
           { label: "Resolved", value: counts.resolved, color: "text-green-600", bg: "bg-green-50" },
-        ].map(c => (
+        ].map((c) => (
           <div key={c.label} className={`card ${c.bg} border-0`}>
             <p className={`text-2xl font-bold ${c.color}`}>{c.value}</p>
             <p className="text-sm text-gray-500">{c.label}</p>
@@ -94,9 +98,8 @@ export default function ActionsPage() {
         ))}
       </div>
 
-      {/* Filter */}
       <div className="flex gap-2">
-        {["", "triggered", "resolved"].map(s => (
+        {["", "triggered", "resolved"].map((s) => (
           <button
             key={s}
             onClick={() => setFilter(s)}
@@ -111,7 +114,6 @@ export default function ActionsPage() {
         ))}
       </div>
 
-      {/* Action Cards */}
       {loading ? (
         <div className="text-center py-12">
           <RefreshCw className="animate-spin mx-auto text-gray-400 mb-2" size={24} />
@@ -127,7 +129,7 @@ export default function ActionsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {actions.map(action => {
+          {actions.map((action) => {
             const meta = ACTION_META[action.action_type] || {
               icon: <Bell size={16} />,
               color: "bg-gray-50 border-gray-200",
@@ -155,7 +157,7 @@ export default function ActionsPage() {
                     </div>
                     <p className="text-sm text-gray-700 mt-1.5">{action.message}</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      Invoice: <code className="bg-white px-1 rounded">{action.invoice_id?.slice(0,12)}…</code>
+                      Invoice: <code className="bg-white px-1 rounded">{action.invoice_id?.slice(0, 12)}...</code>
                     </p>
                   </div>
 

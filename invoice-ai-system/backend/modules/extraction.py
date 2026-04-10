@@ -1,13 +1,14 @@
 """
 NLP / LLM Extraction Engine
-Uses xAI Grok to extract structured invoice data from OCR text.
+Uses Groq to extract structured invoice data from OCR text.
 """
 import json
 import logging
 import re
 from typing import Optional
 
-from openai import OpenAI
+from groq import Groq
+
 from config import settings
 from models.schemas import InvoiceExtraction, LineItem
 
@@ -42,11 +43,11 @@ Return ONLY a valid JSON object with these exact fields:
 
 Rules:
 - For Indian invoices, currency is almost always INR.
-- GSTIN format: 2 digits + 10 char PAN + 1 digit + Z + 1 char (e.g., 27AAPFU0939F1ZV).
+- GSTIN format: 2 digits + 10 char PAN + 1 digit + Z + 1 char.
 - Normalize dates to YYYY-MM-DD.
-- Convert amounts to float (remove ₹, commas, etc.).
+- Convert amounts to float.
 - If a field is not found, use null.
-- Return only the JSON object — no explanation, no markdown.
+- Return only the JSON object with no markdown.
 
 INVOICE TEXT:
 {ocr_text}
@@ -55,94 +56,80 @@ INVOICE TEXT:
 
 class ExtractionEngine:
     def __init__(self):
-        if settings.xai_api_key:
-            self.client = OpenAI(
-                api_key=settings.xai_api_key,
-                base_url="https://api.x.ai/v1"
-            )
+        if settings.groq_api_key:
+            self.client = Groq(api_key=settings.groq_api_key)
         else:
             self.client = None
-            logger.warning("xAI API key not set – extraction will use fallback regex.")
-
-    # ──────────────────────────────────────────
-    # Main Extraction
-    # ──────────────────────────────────────────
+            logger.warning("Groq API key not set; extraction will use fallback regex.")
 
     def extract(self, ocr_text: str) -> InvoiceExtraction:
-        """Extract structured data from OCR text."""
         if not ocr_text or len(ocr_text.strip()) < 10:
             raise ValueError("OCR text is too short or empty.")
 
         if self.client:
             return self._extract_with_llm(ocr_text)
-        else:
-            return self._extract_with_regex(ocr_text)
-
-    # ──────────────────────────────────────────
-    # LLM Extraction
-    # ──────────────────────────────────────────
+        return self._extract_with_regex(ocr_text)
 
     def _extract_with_llm(self, ocr_text: str) -> InvoiceExtraction:
-        prompt = EXTRACTION_PROMPT.format(ocr_text=ocr_text[:4000])  # token limit
+        prompt = EXTRACTION_PROMPT.format(ocr_text=ocr_text[:4000])
 
         response = self.client.chat.completions.create(
-            model=settings.grok_model,
+            model=settings.groq_model,
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a precise invoice data extraction assistant. Always return valid JSON only.",
+                    "content": "Return valid JSON only for invoice extraction.",
                 },
                 {"role": "user", "content": prompt},
             ],
             temperature=0,
-            max_tokens=1500,
+            max_completion_tokens=1500,
             response_format={"type": "json_object"},
         )
 
         raw_json = response.choices[0].message.content
         return self._parse_json_to_schema(raw_json)
 
-    # ──────────────────────────────────────────
-    # Regex Fallback (no API key)
-    # ──────────────────────────────────────────
-
     def _extract_with_regex(self, text: str) -> InvoiceExtraction:
-        """Basic regex extraction as fallback when no LLM is available."""
         logger.info("Using regex fallback extraction.")
 
         def find(patterns, txt):
-            for p in patterns:
-                m = re.search(p, txt, re.IGNORECASE)
-                if m:
-                    return m.group(1).strip()
+            for pattern in patterns:
+                match = re.search(pattern, txt, re.IGNORECASE)
+                if match:
+                    return match.group(1).strip()
             return None
 
         invoice_number = find(
-            [r"invoice\s*(?:no|number|#)[:\s]*([A-Z0-9\-/]+)",
-             r"inv\s*(?:no|#)[:\s]*([A-Z0-9\-/]+)"],
+            [
+                r"invoice\s*(?:no|number|#)[:\s]*([A-Z0-9\-/]+)",
+                r"inv\s*(?:no|#)[:\s]*([A-Z0-9\-/]+)",
+            ],
             text,
         )
-
         vendor_name = find(
-            [r"(?:from|seller|vendor|billed by)[:\s]*([A-Za-z\s&.,]+?)(?:\n|GSTIN|GST)",
-             r"^([A-Z][A-Za-z\s&.,]{3,50})\n"],
+            [
+                r"(?:from|seller|vendor|billed by)[:\s]*([A-Za-z\s&.,]+?)(?:\n|GSTIN|GST)",
+                r"^([A-Z][A-Za-z\s&.,]{3,50})\n",
+            ],
             text,
         )
-
         gstin = find(
             [r"\b([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1})\b"],
             text,
         )
-
         invoice_date = find(
-            [r"(?:invoice\s*date|date)[:\s]*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})",
-             r"(\d{2}/\d{2}/\d{4})"],
+            [
+                r"(?:invoice\s*date|date)[:\s]*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})",
+                r"(\d{2}/\d{2}/\d{4})",
+            ],
             text,
         )
-
         total = find(
-            [r"(?:total|grand total|amount due)[:\s]*(?:₹|Rs\.?|INR)?\s*([\d,]+\.?\d*)",
-             r"(?:₹|Rs\.?)\s*([\d,]+\.?\d*)"],
+            [
+                r"(?:total|grand total|amount due)[:\s]*(?:Rs\.?|INR)?\s*([\d,]+\.?\d*)",
+                r"(?:Rs\.?)\s*([\d,]+\.?\d*)",
+            ],
             text,
         )
 
@@ -151,7 +138,7 @@ class ExtractionEngine:
             try:
                 total_amount = float(total.replace(",", ""))
             except ValueError:
-                pass
+                total_amount = None
 
         return InvoiceExtraction(
             invoice_number=invoice_number,
@@ -161,16 +148,12 @@ class ExtractionEngine:
             total_amount=total_amount,
         )
 
-    # ──────────────────────────────────────────
-    # Helpers
-    # ──────────────────────────────────────────
-
     def _parse_json_to_schema(self, raw_json: str) -> InvoiceExtraction:
         try:
             data = json.loads(raw_json)
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON parse error: {e}\nRaw: {raw_json[:200]}")
-            raise ValueError(f"LLM returned invalid JSON: {e}")
+        except json.JSONDecodeError as exc:
+            logger.error("JSON parse error: %s | Raw: %s", exc, raw_json[:200])
+            raise ValueError(f"LLM returned invalid JSON: {exc}")
 
         line_items = []
         for item in data.get("line_items", []):
@@ -202,9 +185,11 @@ class ExtractionEngine:
     def _normalize_date(self, date_str: Optional[str]) -> Optional[str]:
         if not date_str:
             return None
+
         for fmt in ("%d/%m/%Y", "%d-%m-%Y", "%m/%d/%Y", "%Y-%m-%d", "%d/%m/%y"):
             try:
                 from datetime import datetime
+
                 return datetime.strptime(date_str, fmt).strftime("%Y-%m-%d")
             except ValueError:
                 continue
