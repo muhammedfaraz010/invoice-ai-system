@@ -36,6 +36,25 @@ const ACTION_META = {
   },
 };
 
+const formatActionTime = (value) => {
+  if (!value) {
+    return "--";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "--";
+  }
+
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
+
 export default function ActionsPage() {
   const [actions, setActions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -152,7 +171,7 @@ export default function ActionsPage() {
                         {isPending ? "Pending" : "Resolved"}
                       </span>
                       <span className="text-xs text-gray-400 ml-auto">
-                        {new Date(action.created_at).toLocaleString()}
+                        {formatActionTime(action.created_at)}
                       </span>
                     </div>
                     <p className="text-sm text-gray-700 mt-1.5">{action.message}</p>

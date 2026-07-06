@@ -15,6 +15,15 @@ from database.db import AgentAction, Invoice
 logger = logging.getLogger(__name__)
 
 
+def format_money(amount: float, currency: str | None = None) -> str:
+    code = currency or "INR"
+    symbols = {"INR": "Rs.", "USD": "$", "AED": "AED"}
+    symbol = symbols.get(code, code)
+    if code == "USD":
+        return f"{symbol}{amount:,.2f}"
+    return f"{symbol} {amount:,.2f}"
+
+
 class InvoiceAgent:
     """
     Rule-based automation for processed invoices.
@@ -45,7 +54,12 @@ class InvoiceAgent:
                 ),
             )
 
-        if not invoice.vendor_gstin and invoice.total_amount and invoice.total_amount > 0:
+        if (
+            (invoice.currency or "INR").upper() == "INR"
+            and not invoice.vendor_gstin
+            and invoice.total_amount
+            and invoice.total_amount > 0
+        ):
             action = self._trigger(
                 invoice_id=invoice.id,
                 action_type="missing_gst",
@@ -58,26 +72,27 @@ class InvoiceAgent:
             actions_fired.append(action)
 
         if invoice.total_amount and invoice.total_amount >= self.HIGH_VALUE_THRESHOLD:
+            amount_text = format_money(invoice.total_amount, invoice.currency)
             action = self._trigger(
                 invoice_id=invoice.id,
                 action_type="high_value_approval",
                 message=(
-                    f"High-value invoice detected: Rs. {invoice.total_amount:,.2f} "
+                    f"High-value invoice detected: {amount_text} "
                     f"from '{invoice.vendor_name}'. Approval required."
                 ),
                 db=db,
             )
             actions_fired.append(action)
             self._send_email_alert(
-                subject=f"[APPROVAL NEEDED] High-Value Invoice: Rs. {invoice.total_amount:,.2f}",
+                subject=f"[APPROVAL NEEDED] High-Value Invoice: {amount_text}",
                 body=(
                     f"Invoice {invoice.invoice_number} from {invoice.vendor_name} "
-                    f"amounts to Rs. {invoice.total_amount:,.2f}.\n"
+                    f"amounts to {amount_text}.\n"
                     f"Please review and approve."
                 ),
             )
 
-        if invoice.validation_status == "invalid" and invoice.validation_errors:
+        if invoice.validation_status in {"needs_review", "invalid"} and invoice.validation_errors:
             errors_text = ", ".join(invoice.validation_errors)
             action = self._trigger(
                 invoice_id=invoice.id,

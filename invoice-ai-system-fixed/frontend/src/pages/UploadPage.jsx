@@ -4,6 +4,8 @@ import {
   Upload, FileText, CheckCircle, XCircle, Loader, AlertCircle,
 } from "lucide-react";
 import { uploadInvoice, getInvoice } from "../services/api";
+import { formatCurrency } from "../utils/currency";
+import { StatusBadge } from "../utils/invoiceStatus";
 import toast from "react-hot-toast";
 
 const STATUS_ICONS = {
@@ -11,6 +13,19 @@ const STATUS_ICONS = {
   processing: <Loader className="animate-spin text-yellow-500" size={16} />,
   success: <CheckCircle className="text-green-500" size={16} />,
   failed: <XCircle className="text-red-500" size={16} />,
+};
+
+const getStructuredError = (payload, fallback = "Processing failed. Check file quality and try again.") => {
+  if (!payload) {
+    return { stage: "Processing", error: fallback, details: "" };
+  }
+
+  const data = payload.detail && typeof payload.detail === "object" ? payload.detail : payload;
+  return {
+    stage: data.stage || data.failed_stage || "Processing",
+    error: data.error || fallback,
+    details: data.details || "",
+  };
 };
 
 export default function UploadPage() {
@@ -33,11 +48,13 @@ export default function UploadPage() {
           updateUpload(uploadId, {
             status: inv.extraction_status === "success" ? "success" : "failed",
             invoice: inv,
+            error: inv.processing_error ? getStructuredError(inv.processing_error) : null,
           });
           if (inv.extraction_status === "success") {
             toast.success(`Invoice processed: ${inv.vendor_name || inv.filename}`);
           } else {
-            toast.error("Invoice processing failed.");
+            const error = getStructuredError(inv.processing_error);
+            toast.error(`${error.stage}: ${error.error}`);
           }
         }
       } catch {
@@ -45,7 +62,14 @@ export default function UploadPage() {
       }
       if (attempts >= maxAttempts) {
         clearInterval(poll);
-        updateUpload(uploadId, { status: "failed" });
+        updateUpload(uploadId, {
+          status: "failed",
+          error: {
+            stage: "Processing",
+            error: "Processing timed out",
+            details: "The backend did not finish processing before the polling limit.",
+          },
+        });
       }
     }, 2000);
   };
@@ -59,6 +83,7 @@ export default function UploadPage() {
       status: "uploading",
       progress: 0,
       invoice: null,
+      error: null,
     }, ...prev]);
 
     try {
@@ -67,8 +92,9 @@ export default function UploadPage() {
       updateUpload(uploadId, { status: "processing", invoiceId, progress: 100 });
       pollStatus(uploadId, invoiceId);
     } catch (err) {
-      updateUpload(uploadId, { status: "failed" });
-      toast.error(err.response?.data?.detail || "Upload failed");
+      const error = getStructuredError(err.response?.data, "Upload failed");
+      updateUpload(uploadId, { status: "failed", error });
+      toast.error(`${error.stage}: ${error.error}`);
     }
   };
 
@@ -154,15 +180,15 @@ export default function UploadPage() {
                         <span>Invoice #: <strong>{u.invoice.invoice_number || "--"}</strong></span>
                         <span>Vendor: <strong>{u.invoice.vendor_name || "--"}</strong></span>
                         <span>Date: <strong>{u.invoice.invoice_date || "--"}</strong></span>
-                        <span>Amount: <strong>{`Rs ${Number(u.invoice.total_amount || 0).toLocaleString("en-IN")}`}</strong></span>
+                        <span>Amount: <strong>{formatCurrency(u.invoice.total_amount, u.invoice.currency)}</strong></span>
                         <span>GSTIN: <strong>{u.invoice.vendor_gstin || "--"}</strong></span>
                         <span>
                           Status:
                           {" "}
-                          <strong className={u.invoice.validation_status === "valid" ? "text-green-600" : "text-red-600"}>
-                            {u.invoice.validation_status}
-                          </strong>
+                          <StatusBadge status={u.invoice.validation_status} />
                         </span>
+                        <span>Extraction Quality: <strong>{u.invoice.extraction_score ?? 0}%</strong></span>
+                        <span>AI Confidence: <strong>{u.invoice.ai_confidence ?? 0}%</strong></span>
                       </div>
                       {u.invoice.is_duplicate && (
                         <div className="mt-2 flex items-center gap-1.5 text-orange-600 font-medium">
@@ -172,11 +198,32 @@ export default function UploadPage() {
                     </div>
                   )}
 
-                  {u.status === "failed" && (
-                    <div className="mt-2 flex items-center gap-1.5 text-red-600 text-xs">
-                      <XCircle size={13} /> Processing failed. Check file quality and try again.
+                  {u.status === "failed" && (() => {
+                    const error = u.error || getStructuredError(u.invoice?.processing_error);
+                    return (
+                    <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700 space-y-2">
+                      <div className="flex items-center gap-1.5 font-semibold">
+                        <XCircle size={13} /> Processing failed
+                      </div>
+                      <div>
+                        <div className="font-semibold">❌ Stage:</div>
+                        <div>{error.stage}</div>
+                      </div>
+                      <div>
+                        <div className="font-semibold">❌ Error:</div>
+                        <div>{error.error}</div>
+                      </div>
+                      {error.details && (
+                        <div>
+                          <div className="font-semibold">❌ Details:</div>
+                          <pre className="mt-1 whitespace-pre-wrap break-words font-sans text-red-700">
+                            {error.details}
+                          </pre>
+                        </div>
+                      )}
                     </div>
-                  )}
+                    );
+                  })()}
                 </div>
               </div>
             </div>

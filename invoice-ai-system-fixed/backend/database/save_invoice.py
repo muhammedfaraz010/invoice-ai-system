@@ -1,22 +1,22 @@
 import json
-from database.db import SessionLocal
-from database.db import Invoice
+import logging
+import traceback
+
+from database.db import Invoice, SessionLocal
+
+logger = logging.getLogger(__name__)
 
 
-def save_invoice_to_db(invoice_json):
+def save_invoice_to_db(invoice_json, owner_id=None, owner_role=None, created_by=None):
     db = SessionLocal()
 
     try:
-        # ================= HANDLE INPUT =================
         if isinstance(invoice_json, str):
             data = json.loads(invoice_json)
         else:
-            data = invoice_json  # already dict
+            data = invoice_json
 
-        # ================= CURRENCY HANDLING =================
         currency = data.get("Currency")
-
-        # 🔥 fallback detection (simple logic)
         if not currency:
             amount_text = str(data.get("Total Amount", ""))
 
@@ -25,29 +25,34 @@ def save_invoice_to_db(invoice_json):
             elif "$" in amount_text:
                 currency = "USD"
             else:
-                currency = "INR"  # default
+                currency = "INR"
 
-        # ================= CREATE OBJECT =================
         invoice = Invoice(
+            owner_id=owner_id,
+            owner_role=owner_role,
+            created_by=created_by or owner_id,
             invoice_number=data.get("Invoice Number"),
             vendor_name=data.get("Vendor Name"),
             invoice_date=data.get("Invoice Date"),
             total_amount=data.get("Total Amount"),
             tax_amount=data.get("Tax Amount"),
             subtotal=data.get("Subtotal"),
-            currency=currency,   # ✅ NEW FIELD
+            currency=currency,
         )
 
+        logger.debug("[Database] Saving invoice")
         db.add(invoice)
         db.commit()
         db.refresh(invoice)
+        logger.debug("[Database] Invoice saved")
+        logger.info("Invoice saved. Currency: %s", currency)
 
-        print(f"✅ Invoice saved! Currency: {currency}")
-
-        return invoice  # 🔥 important for agent
+        return invoice
 
     except Exception as e:
-        print("❌ DB ERROR:", e)
+        db.rollback()
+        logger.exception(e)
+        traceback.print_exc()
         return None
 
     finally:

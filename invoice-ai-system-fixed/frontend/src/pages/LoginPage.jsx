@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { ShieldCheck, Eye, EyeOff } from "lucide-react";
 import { login } from "../services/api";
 import toast from "react-hot-toast";
 
 export default function LoginPage({ onLogin }) {
+  const navigate = useNavigate();
   const [form, setForm] = useState({ username: "", password: "" });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -13,19 +15,21 @@ export default function LoginPage({ onLogin }) {
     setLoading(true);
     try {
       const res = await login(form.username, form.password);
-      localStorage.setItem("token", res.data.access_token);
-      onLogin(res.data.access_token);
+      onLogin(res.data);
+      navigate("/");
       toast.success("Logged in successfully!");
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Login failed");
+      const data = err.response?.data;
+      const message = data?.error || data?.detail || data?.details || err.message || "Unable to reach authentication server";
+      toast.error(data?.stage ? `${data.stage}: ${message}` : message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 w-full max-w-md p-8">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-2xl mb-4">
@@ -33,12 +37,6 @@ export default function LoginPage({ onLogin }) {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Invoice AI System</h1>
           <p className="text-gray-500 text-sm mt-1">Sign in to continue</p>
-        </div>
-
-        {/* Demo credentials */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6 text-sm">
-          <p className="font-medium text-blue-800 mb-1">Demo Credentials</p>
-          <p className="text-blue-600">Username: <strong>admin</strong> &nbsp;|&nbsp; Password: <strong>admin123</strong></p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -81,6 +79,15 @@ export default function LoginPage({ onLogin }) {
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
+
+        <div className="mt-5 flex items-center justify-between text-sm">
+          <Link to="/forgot-password" className="text-blue-600 hover:text-blue-700">
+            Forgot password?
+          </Link>
+          <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+            Create account
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -1,21 +1,22 @@
 import json
-import pytesseract
-from pdf2image import convert_from_path
+import logging
+import traceback
 
-from modules.agent import invoice_agent
-from database.save_invoice import save_invoice_to_db
-from modules.agents import InvoiceAgent
-from database.db import SessionLocal
-from models.schemas import Invoice
-
-# 🔥 RAG IMPORTS
-from sentence_transformers import SentenceTransformer
 import faiss
 import numpy as np
+import pytesseract
+from pdf2image import convert_from_path
+from sentence_transformers import SentenceTransformer
 
-print("🚀 OCR STARTED")
+from database.db import Invoice, SessionLocal
+from database.save_invoice import save_invoice_to_db
+from modules.agent import invoice_agent
+from modules.agents import InvoiceAgent
+from utils.error_handling import ProcessingStageError
 
-# ================= RAG SETUP =================
+logger = logging.getLogger(__name__)
+logger.info("OCR script started")
+
 model = SentenceTransformer("all-MiniLM-L6-v2")
 dimension = 384
 index = faiss.IndexFlatL2(dimension)
@@ -23,134 +24,124 @@ documents = []
 
 
 def build_index():
+    logger.debug("[Database] Starting RAG index build")
     db = SessionLocal()
-    invoices = db.query(Invoice).all()
+    try:
+        invoices = db.query(Invoice).all()
 
-    global documents
-    documents = []
+        global documents
+        documents = []
 
-    vectors = []
+        vectors = []
+        for inv in invoices:
+            text = f"{inv.vendor_name} {inv.invoice_number} {inv.total_amount}"
+            emb = model.encode([text])[0]
+            vectors.append(emb)
+            documents.append(text)
 
-    for inv in invoices:
-        text = f"{inv.vendor_name} {inv.invoice_number} {inv.total_amount}"
-        emb = model.encode([text])[0]
-
-        vectors.append(emb)
-        documents.append(text)
-
-    if vectors:
-        index.reset()
-        index.add(np.array(vectors))
-
-    db.close()
+        if vectors:
+            index.reset()
+            index.add(np.array(vectors))
+        logger.debug("[Database] Finished RAG index build")
+    except Exception as e:
+        logger.exception(e)
+        traceback.print_exc()
+        raise
+    finally:
+        db.close()
 
 
 def query_rag(question):
-    q_emb = model.encode([question])
-    D, I = index.search(np.array(q_emb), k=3)
+    try:
+        logger.debug("[Response generation] Starting RAG query")
+        q_emb = model.encode([question])
+        _, result_indexes = index.search(np.array(q_emb), k=3)
+        results = list(set([documents[i] for i in result_indexes[0] if i < len(documents)]))
+        logger.debug("[Response generation] Finished RAG query")
+        return results
+    except Exception as e:
+        logger.exception(e)
+        traceback.print_exc()
+        raise
 
-    # 🔥 remove duplicates
-    results = list(set([documents[i] for i in I[0] if i < len(documents)]))
 
-    return results
-
-
-# ================= OCR SETUP =================
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 
 def extract_text_from_pdf(file_path):
-    print(f"📄 Reading file: {file_path}")
+    logger.debug("[PDF to image conversion] Reading file: %s", file_path)
+    try:
+        images = convert_from_path(
+            file_path,
+            poppler_path=r"C:\poppler\poppler-25.12.0\Library\bin",
+        )
+        logger.debug("[PDF to image conversion] Total pages: %s", len(images))
 
-    images = convert_from_path(
-        file_path,
-        poppler_path=r"C:\poppler\poppler-25.12.0\Library\bin",
-    )
+        text = ""
+        for i, image in enumerate(images):
+            logger.debug("[OCR] Processing page %s", i + 1)
+            page_text = pytesseract.image_to_string(image)
+            text += page_text
 
-    print(f"📑 Total pages: {len(images)}")
+        if not text.strip():
+            raise ProcessingStageError("OCR", "No readable text found in invoice.")
+        logger.debug("[OCR] Finished PDF OCR")
+        return text
+    except ProcessingStageError:
+        raise
+    except Exception as e:
+        logger.exception(e)
+        traceback.print_exc()
+        raise ProcessingStageError("OCR", "OCR extraction failed", str(e)) from e
 
-    text = ""
 
-    for i, img in enumerate(images):
-        print(f"🔍 Processing page {i + 1}")
-        page_text = pytesseract.image_to_string(img)
-        text += page_text
-
-    return text
-
-
-# ================= MAIN =================
 if __name__ == "__main__":
-    print("🔥 MAIN RUNNING")
-
+    logger.info("OCR script main running")
     file_path = "uploads/sample.pdf"
 
     try:
-        # Step 1: OCR
         text = extract_text_from_pdf(file_path)
+        logger.info("OCR output:\n%s", text)
 
-        print("\n===== OCR OUTPUT =====\n")
-
-        if not text.strip():
-            print("❌ No text extracted (try a clearer PDF)")
-            exit()
-
-        print(text)
-
-        # Step 2: AI Extraction
-        print("\n🤖 CALLING AI...")
+        logger.debug("[LLM] Calling invoice agent")
         raw_result = invoice_agent("extract invoice data", text)
+        logger.info("Raw AI output:\n%s", raw_result)
 
-        print("\n===== RAW AI OUTPUT =====\n")
-        print(raw_result)
-
-        # Step 3: Convert to JSON
         try:
             cleaned = raw_result.strip().replace("```json", "").replace("```", "")
             result = json.loads(cleaned)
         except Exception as e:
-            print("❌ JSON PARSE ERROR:", e)
-            exit()
+            logger.exception(e)
+            traceback.print_exc()
+            raise ProcessingStageError("LLM", "Unable to parse invoice data", str(e)) from e
 
-        print("\n===== CLEAN JSON =====\n")
-        print(result)
+        logger.info("Clean JSON:\n%s", result)
 
-        # Step 4: Save to DB
-        print("\n💾 Saving to database...")
+        logger.debug("[Database] Saving to database")
         saved_invoice = save_invoice_to_db(result)
 
-        # Step 5: Run Automation Agent
-        print("\n🤖 Running Automation Agent...")
-
+        logger.debug("[Response generation] Running automation agent")
         db = SessionLocal()
         invoice = saved_invoice
 
-        if invoice is None:
-            print("❌ Invoice not saved. Skipping agent.")
-        else:
-            agent = InvoiceAgent()
-            actions = agent.run(invoice, db)
+        try:
+            if invoice is None:
+                logger.error("Invoice not saved. Skipping agent.")
+            else:
+                agent = InvoiceAgent()
+                actions = agent.run(invoice, db)
+                logger.info("Agent actions: %s", actions)
+        finally:
+            db.close()
 
-            print("\n===== AGENT ACTIONS =====")
-            print(actions)
-
-        db.close()
-
-        # ================= RAG PART =================
-        print("\n🔍 Building RAG Index...")
+        logger.debug("[Database] Building RAG index")
         build_index()
 
-        print("\n💬 Ask something about invoices:")
-        query = input("👉 ")
-
+        query = input("Ask something about invoices: ")
         results = query_rag(query)
-
-        print("\n===== RAG RESULT =====")
-        for r in results:
-            print("•", r)
-
-        print("\n✅ PROCESS COMPLETED SUCCESSFULLY!")
+        logger.info("RAG result: %s", results)
+        logger.info("Process completed successfully")
 
     except Exception as e:
-        print("\n❌ ERROR OCCURRED:")
-        print(e)
+        logger.exception(e)
+        traceback.print_exc()

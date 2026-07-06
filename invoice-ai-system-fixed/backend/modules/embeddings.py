@@ -14,6 +14,7 @@ EMBEDDING_DIMENSION = 1536
 
 
 def _build_invoice_text(invoice_data: dict) -> str:
+    currency = invoice_data.get("currency") or "INR"
     parts = [
         f"Invoice Number: {invoice_data.get('invoice_number', 'N/A')}",
         f"Vendor: {invoice_data.get('vendor_name', 'N/A')}",
@@ -21,9 +22,9 @@ def _build_invoice_text(invoice_data: dict) -> str:
         f"Buyer: {invoice_data.get('buyer_name', 'N/A')}",
         f"Date: {invoice_data.get('invoice_date', 'N/A')}",
         f"Due Date: {invoice_data.get('due_date', 'N/A')}",
-        f"Total Amount: Rs. {invoice_data.get('total_amount', 'N/A')}",
-        f"Tax Amount: Rs. {invoice_data.get('tax_amount', 'N/A')}",
-        f"Currency: {invoice_data.get('currency', 'INR')}",
+        f"Total Amount: {currency} {invoice_data.get('total_amount', 'N/A')}",
+        f"Tax Amount: {currency} {invoice_data.get('tax_amount', 'N/A')}",
+        f"Currency: {currency}",
         f"Filename: {invoice_data.get('filename', '')}",
     ]
 
@@ -33,7 +34,7 @@ def _build_invoice_text(invoice_data: dict) -> str:
         for item in line_items:
             desc = item.get("description", "")
             amt = item.get("amount", "")
-            parts.append(f"- {desc}: Rs. {amt}")
+            parts.append(f"- {desc}: {currency} {amt}")
 
     return "\n".join(parts)
 

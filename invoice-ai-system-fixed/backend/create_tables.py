@@ -1,5 +1,8 @@
 from database.db import create_tables
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 create_tables()
-print("Tables created automatically.")
+logger.info("Tables created automatically.")

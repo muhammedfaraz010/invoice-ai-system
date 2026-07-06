@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { queryChatbot } from "../services/api";
 import { Send, Bot, User, Loader, Lightbulb, MessageSquare } from "lucide-react";
 
@@ -11,7 +12,7 @@ const SUGGESTIONS = [
   "Show invoices from vendor XYZ",
 ];
 
-const Message = ({ msg }) => {
+const Message = ({ msg, onSourceClick }) => {
   const isUser = msg.role === "user";
   return (
     <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
@@ -34,10 +35,15 @@ const Message = ({ msg }) => {
           <div className="mt-3 pt-3 border-t border-gray-100">
             <p className="text-xs text-gray-400 mb-1">Sources:</p>
             {msg.sources.map((s, i) => (
-              <span key={i} className="inline-block text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded mr-1 mb-1">
+              <button
+                key={i}
+                type="button"
+                onClick={() => onSourceClick(s)}
+                className="inline-block text-xs bg-blue-50 text-blue-700 hover:text-blue-800 hover:underline px-2 py-0.5 rounded mr-1 mb-1 cursor-pointer"
+              >
                 {s.invoice_number || s.invoice_id?.slice(0, 8)}
                 {s.vendor_name ? ` • ${s.vendor_name}` : ""}
-              </span>
+              </button>
             ))}
           </div>
         )}
@@ -50,6 +56,7 @@ const Message = ({ msg }) => {
 };
 
 export default function ChatPage() {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([
     {
       role: "assistant",
@@ -104,6 +111,16 @@ export default function ChatPage() {
     }
   };
 
+  const handleSourceClick = (source) => {
+    const key = {
+      invoice_number: source?.invoice_id,
+      amount: source?.amount,
+      vendor: source?.vendor,
+    };
+    localStorage.setItem("selectedInvoiceKey", JSON.stringify(key));
+    navigate("/invoices");
+  };
+
   return (
     <div className="flex flex-col h-full bg-gray-50">
       <div className="bg-white border-b border-gray-100 px-6 py-4">
@@ -123,7 +140,7 @@ export default function ChatPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-        {messages.map((msg, i) => <Message key={i} msg={msg} />)}
+        {messages.map((msg, i) => <Message key={i} msg={msg} onSourceClick={handleSourceClick} />)}
 
         {loading && (
           <div className="flex gap-3">

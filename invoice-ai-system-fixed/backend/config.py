@@ -1,7 +1,10 @@
 import os
 from functools import lru_cache
+from pathlib import Path
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
+
+BASE_DIR = Path(__file__).resolve().parent
 
 
 class Settings(BaseSettings):
@@ -24,6 +27,11 @@ class Settings(BaseSettings):
     # Security
     secret_key: str = "changeme_in_production_use_a_long_random_string"
     access_token_expire_minutes: int = 60
+    refresh_token_expire_days: int = 7
+    admin_username: str = "admin"
+    admin_email: str = "admin@invoiceai.com"
+    admin_full_name: str = "System Administrator"
+    admin_password: str = "admin123"
 
     # Storage
     upload_dir: str = "./uploads"
@@ -42,7 +50,7 @@ class Settings(BaseSettings):
     alert_email: str = ""
 
     class Config:
-        env_file = ".env"
+        env_file = BASE_DIR / ".env"
         case_sensitive = False
 
     @field_validator("debug", mode="before")
