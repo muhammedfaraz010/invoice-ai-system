@@ -1,7 +1,3 @@
-"""
-Validation & Compliance Engine
-Classifies invoice extraction quality without treating optional fields as errors.
-"""
 import re
 import logging
 import traceback
@@ -11,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from models.schemas import InvoiceExtraction, ValidationResult
 from utils.error_handling import log_stage
+from utils.tax_display import build_tax_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +65,7 @@ class ValidationEngine:
                 warnings += self._check_tax_id_quality(extraction)
             warnings += self._check_amount_consistency(extraction)
             warnings += self._check_dates(extraction)
+            warnings += self._check_country_tax_warnings(extraction)
 
             duplicate_id = self._check_duplicate(extraction, db, current_invoice_id)
             required_score, optional_score, extraction_score = calculate_extraction_scores(
@@ -166,6 +164,30 @@ class ValidationEngine:
         if e.total_amount and e.total_amount < 0:
             warnings.append("Total amount is negative - please verify.")
         return warnings
+
+    @log_stage("data validation")
+    def _check_country_tax_warnings(self, e: InvoiceExtraction) -> list[str]:
+        """
+        Soft, non-fatal warnings only: flags when the tax type doesn't match
+        the detected country (e.g. VAT shown for an Indian invoice), or
+        an Indian invoice's effective GST rate doesn't match a current
+        GST 2.0 slab (0/5/18/40%) for invoices dated on/after 22 Sep 2025.
+        Never raises and never fails validation on its own.
+        """
+        try:
+            tax_meta = build_tax_metadata(
+                currency=getattr(e, "currency", None),
+                subtotal=getattr(e, "subtotal", None),
+                tax_amount=getattr(e, "tax_amount", None),
+                total_amount=getattr(e, "total_amount", None),
+                vendor_gstin=getattr(e, "vendor_gstin", None),
+                vendor_vat=getattr(e, "vendor_vat", None),
+                invoice_date=getattr(e, "invoice_date", None),
+            )
+            return tax_meta.get("warnings", [])
+        except Exception:
+            logger.exception("Country-aware tax check failed; skipping (non-fatal).")
+            return []
 
     @log_stage("Data validation")
     def _check_dates(self, e: InvoiceExtraction) -> list[str]:

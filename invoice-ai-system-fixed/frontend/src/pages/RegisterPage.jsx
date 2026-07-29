@@ -58,14 +58,17 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 w-full max-w-md p-8">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="pointer-events-none fixed -top-32 left-1/3 w-[32rem] h-[32rem] bg-primary-600/10 rounded-full blur-3xl" />
+      <div className="pointer-events-none fixed bottom-0 right-0 w-[28rem] h-[28rem] bg-cyan-600/10 rounded-full blur-3xl" />
+
+      <div className="card p-8 w-full max-w-md relative z-10">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-2xl mb-4">
-            <ShieldCheck className="text-blue-600" size={32} />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-500/10 rounded-2xl mb-4">
+            <ShieldCheck className="text-primary-400" size={32} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
-          <p className="text-gray-500 text-sm mt-1">Start processing your invoices securely</p>
+          <h1 className="text-2xl font-bold text-white">Create Account</h1>
+          <p className="text-blue-300 text-sm mt-1">Start processing your invoices securely</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -76,12 +79,12 @@ export default function RegisterPage() {
             ["password", "Password", "password"],
           ].map(([name, label, type]) => (
             <div key={name}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+              <label className="block text-sm font-medium text-blue-200 mb-1">{label}</label>
               <input
                 type={type}
                 value={form[name]}
                 onChange={(e) => setForm({ ...form, [name]: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-blue-800/50 bg-blue-950/30 text-white placeholder-blue-400 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
                 minLength={name === "password" ? 8 : undefined}
               />
@@ -90,15 +93,15 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2.5 rounded-lg transition-colors text-sm"
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-900/40 text-white font-medium py-2.5 rounded-lg transition-colors text-sm"
           >
             {loading ? "Creating..." : "Register"}
           </button>
         </form>
 
-        <p className="mt-5 text-sm text-center text-gray-500">
+        <p className="mt-5 text-sm text-center text-blue-300">
           Already have an account?{" "}
-          <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+          <Link to="/login" className="text-primary-400 hover:text-primary-300 font-medium">
             Sign in
           </Link>
         </p>

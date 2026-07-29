@@ -387,12 +387,25 @@ def _repair_postgres_schema():
             for statement in statements:
                 logger.debug("[Database] Running schema repair: %s", statement)
                 connection.execute(text(statement))
-            connection.execute(text("UPDATE invoices SET created_at = upload_time WHERE created_at IS NULL"))
-            connection.execute(text("UPDATE invoices SET updated_at = upload_time WHERE updated_at IS NULL"))
     except Exception as e:
         logger.exception(e)
         traceback.print_exc()
         raise
+
+    try:
+        with engine.begin() as connection:
+            if dialect == "postgresql":
+                connection.execute(text(
+                    "UPDATE invoices SET created_at = upload_time::timestamp WHERE created_at IS NULL AND upload_time IS NOT NULL"
+                ))
+                connection.execute(text(
+                    "UPDATE invoices SET updated_at = upload_time::timestamp WHERE updated_at IS NULL AND upload_time IS NOT NULL"
+                ))
+            else:
+                connection.execute(text("UPDATE invoices SET created_at = upload_time WHERE created_at IS NULL"))
+                connection.execute(text("UPDATE invoices SET updated_at = upload_time WHERE updated_at IS NULL"))
+    except Exception as e:
+        logger.warning("[Database] Non-critical backfill of created_at/updated_at failed: %s", e)
 
 
 def _repair_user_schema():
@@ -458,6 +471,7 @@ def create_tables():
 
 
 def get_db():
+    
     db = SessionLocal()
     try:
         yield db

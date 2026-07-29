@@ -109,5 +109,8 @@ export const resolveAction = (id) => api.post(`/agent-action/${id}/resolve`);
 // Analytics
 export const getAnalytics = () => api.get("/analytics");
 
+// Admin
+export const getAdminOverview = () => api.get("/admin/overview");
+
 // Health
 export const getHealth = () => api.get("/health");

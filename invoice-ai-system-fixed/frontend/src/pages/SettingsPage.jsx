@@ -65,21 +65,21 @@ export default function SettingsPage({ user }) {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-sm text-gray-500">Account, access, and application preferences</p>
+        <h1 className="text-2xl font-bold text-white">Settings</h1>
+        <p className="text-sm text-blue-300">Account, access, and application preferences</p>
       </div>
 
       <div className="card">
-        <h2 className="text-base font-semibold text-gray-800 mb-2">Security</h2>
-        <p className="text-sm text-gray-500">JWT access tokens expire automatically. Sign out from shared devices when finished.</p>
+        <h2 className="text-base font-semibold text-blue-100 mb-2">Security</h2>
+        <p className="text-sm text-blue-300">JWT access tokens expire automatically. Sign out from shared devices when finished.</p>
       </div>
 
       {user?.role === "admin" && (
         <div className="card p-0 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="px-6 py-4 border-b border-blue-900/40 flex items-center justify-between">
             <div>
-              <h2 className="text-base font-semibold text-gray-800">Users</h2>
-              <p className="text-sm text-gray-500">Manage account access and roles</p>
+              <h2 className="text-base font-semibold text-blue-100">Users</h2>
+              <p className="text-sm text-blue-300">Manage account access and roles</p>
             </div>
             <button onClick={loadUsers} className="btn-secondary">
               {loading ? "Loading..." : "Refresh"}
@@ -94,7 +94,7 @@ export default function SettingsPage({ user }) {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-slate-800/60">
                 {users.map((u) => {
                   const userStatus = getUserStatus(u);
                   const isActive = userStatus === "Active";
@@ -103,15 +103,15 @@ export default function SettingsPage({ user }) {
                   const disableDeactivate = isSelf || isLastActiveAdmin;
                   return (
                     <tr key={u.id}>
-                      <td className="px-4 py-3 font-medium text-gray-800">{u.full_name}</td>
-                      <td className="px-4 py-3 text-gray-600">{u.username}</td>
-                      <td className="px-4 py-3 text-gray-600">{u.email}</td>
+                      <td className="px-4 py-3 font-medium text-gray-100">{u.full_name}</td>
+                      <td className="px-4 py-3 text-gray-300">{u.username}</td>
+                      <td className="px-4 py-3 text-gray-300">{u.email}</td>
                       <td className="px-4 py-3">
                         <select
                           value={u.role}
                           onChange={(e) => handleRole(u, e.target.value)}
                           disabled={isSelf}
-                          className="border border-gray-300 rounded-lg px-2 py-1 text-sm capitalize disabled:bg-gray-50"
+                          className="border border-blue-800/50 bg-blue-950/30 text-white rounded-lg px-2 py-1 text-sm capitalize disabled:bg-blue-950/10 disabled:text-blue-400"
                         >
                           <option value="user">User</option>
                           <option value="admin">Admin</option>
@@ -126,14 +126,14 @@ export default function SettingsPage({ user }) {
                             onClick={() => handleDeactivate(u)}
                             disabled={disableDeactivate}
                             title={isSelf ? "You cannot deactivate your own account" : isLastActiveAdmin ? "Cannot deactivate the last active admin" : ""}
-                            className="rounded-md px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 disabled:text-gray-300 disabled:hover:bg-transparent"
+                            className="rounded-md px-3 py-1.5 text-sm font-medium text-red-400 hover:bg-red-900/30 hover:text-red-300 disabled:text-gray-600 disabled:hover:bg-transparent"
                           >
                             Deactivate
                           </button>
                         ) : (
                           <button
                             onClick={() => handleActivate(u)}
-                            className="rounded-md px-3 py-1.5 text-sm font-medium text-green-600 hover:bg-green-50 hover:text-green-700"
+                            className="rounded-md px-3 py-1.5 text-sm font-medium text-green-400 hover:bg-green-900/30 hover:text-green-300"
                           >
                             Activate
                           </button>

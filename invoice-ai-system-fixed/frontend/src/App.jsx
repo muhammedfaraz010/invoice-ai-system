@@ -55,10 +55,13 @@ function App() {
 
   const navItems = [
     { to: "/", icon: <LayoutDashboard size={18} />, label: "Dashboard" },
-    { to: "/upload", icon: <Upload size={18} />, label: "Upload" },
-    { to: "/invoices", icon: <FileText size={18} />, label: "Invoices" },
     { to: "/chat", icon: <MessageSquare size={18} />, label: "AI Chat" },
     { to: "/actions", icon: <Bell size={18} />, label: "Actions" },
+  ];
+
+  const userOnlyItems = [
+    { to: "/upload", icon: <Upload size={18} />, label: "Upload" },
+    { to: "/invoices", icon: <FileText size={18} />, label: "Invoices" },
   ];
 
   const adminItems = [
@@ -68,6 +71,13 @@ function App() {
     { to: "/notifications", icon: <Bell size={18} />, label: "Notifications" },
     { to: "/settings", icon: <Settings size={18} />, label: "Settings" },
   ];
+
+  const navLinkClass = ({ isActive }) =>
+    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+      isActive
+        ? "bg-gradient-to-r from-primary-600/80 to-cyan-600/80 text-white font-medium shadow-inner shadow-black/20"
+        : "text-blue-200 hover:bg-white/5 hover:text-white"
+    }`;
 
   return (
     <BrowserRouter>
@@ -80,16 +90,22 @@ function App() {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       ) : (
-      <div className="flex h-screen bg-gray-50 font-sans">
+      <div className="flex h-screen bg-slate-950 font-sans relative overflow-hidden">
+        {/* Ambient glow accents */}
+        <div className="pointer-events-none fixed -top-32 left-1/3 w-[32rem] h-[32rem] bg-primary-600/10 rounded-full blur-3xl" />
+        <div className="pointer-events-none fixed bottom-0 right-0 w-[28rem] h-[28rem] bg-cyan-600/10 rounded-full blur-3xl" />
+
         {/* Sidebar */}
         <aside
-          className={`${
+          className={`relative z-10 ${
             sidebarOpen ? "w-56" : "w-16"
-          } bg-gradient-to-b from-blue-900 to-blue-800 text-white flex flex-col transition-all duration-300`}
+          } bg-gradient-to-b from-slate-900 via-blue-950 to-slate-950 text-white flex flex-col transition-all duration-300 shadow-xl shadow-black/40 border-r border-blue-900/40`}
         >
           {/* Logo */}
-          <div className="flex items-center gap-3 px-4 py-5 border-b border-blue-700">
-            <ShieldCheck className="text-blue-300 shrink-0" size={24} />
+          <div className="flex items-center gap-3 px-4 py-5 border-b border-blue-900/50">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-cyan-500 shrink-0">
+              <ShieldCheck className="text-white" size={18} />
+            </div>
             {sidebarOpen && (
               <span className="font-bold text-sm tracking-wide">Invoice AI</span>
             )}
@@ -102,23 +118,18 @@ function App() {
           </div>
 
           {/* Nav */}
-          <nav className="flex-1 py-4 space-y-1 px-2">
+          <nav className="flex-1 py-4 space-y-1 px-2 overflow-y-auto">
             {sidebarOpen && user?.role === "admin" && (
-              <div className="px-3 pb-2 text-[11px] uppercase tracking-wide text-blue-300">Admin Workspace</div>
+              <div className="px-3 pb-2 text-[11px] uppercase tracking-wide text-cyan-400/80">Admin Workspace</div>
             )}
             {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === "/"}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                    isActive
-                      ? "bg-white/20 text-white font-medium"
-                      : "text-blue-200 hover:bg-white/10 hover:text-white"
-                  }`
-                }
-              >
+              <NavLink key={item.to} to={item.to} end={item.to === "/"} className={navLinkClass}>
+                {item.icon}
+                {sidebarOpen && <span>{item.label}</span>}
+              </NavLink>
+            ))}
+            {user?.role !== "admin" && userOnlyItems.map((item) => (
+              <NavLink key={item.to} to={item.to} className={navLinkClass}>
                 {item.icon}
                 {sidebarOpen && <span>{item.label}</span>}
               </NavLink>
@@ -126,20 +137,10 @@ function App() {
             {user?.role === "admin" && (
               <>
                 {sidebarOpen && (
-                  <div className="px-3 pt-5 pb-2 text-[11px] uppercase tracking-wide text-blue-300">Manage Users</div>
+                  <div className="px-3 pt-5 pb-2 text-[11px] uppercase tracking-wide text-cyan-400/80">Manage Users</div>
                 )}
                 {adminItems.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                        isActive
-                          ? "bg-white/20 text-white font-medium"
-                          : "text-blue-200 hover:bg-white/10 hover:text-white"
-                      }`
-                    }
-                  >
+                  <NavLink key={item.to} to={item.to} className={navLinkClass}>
                     {item.icon}
                     {sidebarOpen && <span>{item.label}</span>}
                   </NavLink>
@@ -147,31 +148,13 @@ function App() {
               </>
             )}
             {user?.role !== "admin" && (
-              <NavLink
-                to="/notifications"
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                    isActive
-                      ? "bg-white/20 text-white font-medium"
-                      : "text-blue-200 hover:bg-white/10 hover:text-white"
-                  }`
-                }
-              >
+              <NavLink to="/notifications" className={navLinkClass}>
                 <Bell size={18} />
                 {sidebarOpen && <span>Notifications</span>}
               </NavLink>
             )}
             {user?.role !== "admin" && (
-              <NavLink
-                to="/settings"
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                    isActive
-                      ? "bg-white/20 text-white font-medium"
-                      : "text-blue-200 hover:bg-white/10 hover:text-white"
-                  }`
-                }
-              >
+              <NavLink to="/settings" className={navLinkClass}>
                 <Settings size={18} />
                 {sidebarOpen && <span>Settings</span>}
               </NavLink>
@@ -179,10 +162,10 @@ function App() {
           </nav>
 
           {/* Logout */}
-          <div className="p-3 border-t border-blue-700">
+          <div className="p-3 border-t border-blue-900/50">
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-blue-200 hover:bg-white/10 hover:text-white transition-colors"
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-blue-200 hover:bg-white/5 hover:text-white transition-colors"
             >
               <LogOut size={18} />
               {sidebarOpen && <span>Logout</span>}
@@ -191,11 +174,11 @@ function App() {
         </aside>
 
         {/* Main */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <header className="bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between">
+        <div className="relative z-10 flex-1 flex flex-col min-w-0">
+          <header className="bg-slate-900/60 backdrop-blur-sm border-b border-blue-900/40 px-6 py-3 flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Welcome</p>
-              <h1 className="text-lg font-semibold text-gray-900">
+              <p className="text-sm text-blue-300">Welcome</p>
+              <h1 className="text-lg font-semibold text-white">
                 {user?.full_name || user?.username || "Invoice AI"}
               </h1>
             </div>
@@ -203,26 +186,26 @@ function App() {
               <button
                 type="button"
                 onClick={() => setProfileOpen((open) => !open)}
-                className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                className="flex items-center gap-2 rounded-lg border border-blue-800/50 px-3 py-2 text-sm text-blue-100 hover:bg-blue-900/40"
               >
-                <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center">
+                <span className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-cyan-500 text-white flex items-center justify-center">
                   <User size={16} />
                 </span>
                 <span className="hidden sm:block text-left">
-                  <span className="block font-medium leading-tight">{user?.full_name || user?.username}</span>
-                  <span className="block text-xs text-gray-400 capitalize">{user?.role}</span>
+                  <span className="block font-medium leading-tight text-white">{user?.full_name || user?.username}</span>
+                  <span className="block text-xs text-blue-300 capitalize">{user?.role}</span>
                 </span>
                 <ChevronDown size={14} />
               </button>
               {profileOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-lg border border-gray-100 bg-white shadow-lg py-1 z-20">
-                  <NavLink onClick={() => setProfileOpen(false)} to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                <div className="absolute right-0 mt-2 w-48 rounded-lg border border-blue-800/50 bg-slate-800 shadow-lg py-1 z-20">
+                  <NavLink onClick={() => setProfileOpen(false)} to="/profile" className="block px-4 py-2 text-sm text-blue-100 hover:bg-blue-900/40">
                     Profile
                   </NavLink>
-                  <NavLink onClick={() => setProfileOpen(false)} to="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                  <NavLink onClick={() => setProfileOpen(false)} to="/settings" className="block px-4 py-2 text-sm text-blue-100 hover:bg-blue-900/40">
                     Settings
                   </NavLink>
-                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-danger-400 hover:bg-blue-900/40">
                     Logout
                   </button>
                 </div>
@@ -232,8 +215,8 @@ function App() {
           <main className="flex-1 overflow-auto">
             <Routes>
               <Route path="/" element={<Dashboard user={user} />} />
-              <Route path="/upload" element={<UploadPage />} />
-              <Route path="/invoices" element={<InvoicesPage />} />
+              <Route path="/upload" element={user?.role === "admin" ? <Navigate to="/" replace /> : <UploadPage />} />
+              <Route path="/invoices" element={user?.role === "admin" ? <Navigate to="/" replace /> : <InvoicesPage />} />
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/actions" element={<ActionsPage />} />
               <Route path="/profile" element={<ProfilePage user={user} onUserChange={setUser} />} />

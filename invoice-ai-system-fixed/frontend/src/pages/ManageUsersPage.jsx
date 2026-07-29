@@ -46,8 +46,8 @@ export default function ManageUsersPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Manage Users</h1>
-          <p className="text-sm text-gray-500">Select a user before loading their workspace.</p>
+          <h1 className="text-2xl font-bold text-gray-100">Manage Users</h1>
+          <p className="text-sm text-gray-400">Select a user before loading their workspace.</p>
         </div>
         <button onClick={load} className="btn-secondary flex items-center gap-2">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
@@ -63,23 +63,23 @@ export default function ManageUsersPage() {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody className="divide-y divide-slate-800/60">
             {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium text-gray-900">{user.full_name || user.username}</td>
-                <td className="px-4 py-3 text-gray-600">{user.email}</td>
-                <td className="px-4 py-3 capitalize">{user.role}</td>
-                <td className="px-4 py-3">{user.status}</td>
-                <td className="px-4 py-3">{user.invoice_count || 0}</td>
-                <td className="px-4 py-3">{formatBytes(user.storage_bytes)}</td>
-                <td className="px-4 py-3 text-gray-500">{user.last_login || "--"}</td>
+              <tr key={user.id} className="hover:bg-blue-900/30">
+                <td className="px-4 py-3 font-medium text-gray-100">{user.full_name || user.username}</td>
+                <td className="px-4 py-3 text-gray-300">{user.email}</td>
+                <td className="px-4 py-3 capitalize text-gray-200">{user.role}</td>
+                <td className="px-4 py-3 text-gray-200">{user.status}</td>
+                <td className="px-4 py-3 text-gray-200">{user.invoice_count || 0}</td>
+                <td className="px-4 py-3 text-gray-200">{formatBytes(user.storage_bytes)}</td>
+                <td className="px-4 py-3 text-gray-400">{user.last_login || "--"}</td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
                     <Link to={`/users/${user.id}`} className="btn-secondary flex items-center gap-2">
                       <ExternalLink size={14} /> Open
                     </Link>
                     {user.role !== "admin" && (
-                      <button onClick={() => handleDeleteRequest(user)} className="btn-secondary text-red-600 flex items-center gap-2">
+                      <button onClick={() => handleDeleteRequest(user)} className="btn-secondary text-red-400 flex items-center gap-2">
                         <Trash2 size={14} /> Request
                       </button>
                     )}

@@ -160,8 +160,8 @@ export default function InvoicesPage() {
       <div className={`flex-1 space-y-4 ${selected ? "min-w-0" : ""}`}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
-            <p className="text-sm text-gray-500">{total} total invoices</p>
+            <h1 className="text-2xl font-bold text-gray-100">Invoices</h1>
+            <p className="text-sm text-gray-400">{total} total invoices</p>
           </div>
           <button onClick={load} className="btn-secondary flex items-center gap-2">
             <RefreshCw size={14} /> Refresh
@@ -199,7 +199,7 @@ export default function InvoicesPage() {
         </div>
 
         {duplicateGroup.length > 1 && (
-          <div className="text-yellow-600 font-medium mb-2">
+          <div className="text-yellow-400 font-medium mb-2">
             Warning: {duplicateGroup.length} duplicate invoices found
           </div>
         )}
@@ -216,7 +216,7 @@ export default function InvoicesPage() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-slate-800/60">
                 {loading ? (
                   <tr>
                     <td colSpan={7} className="text-center py-12 text-gray-400">
@@ -238,13 +238,13 @@ export default function InvoicesPage() {
                       setSelected(inv);
                       setDuplicateGroup([]);
                     }}
-                    className={`cursor-pointer hover:bg-blue-50 transition-colors ${
+                    className={`cursor-pointer hover:bg-blue-900/30 transition-colors ${
                       duplicateGroup.some((d) => d.id === inv.id) || selected?.id === inv.id
-                        ? "bg-blue-100"
+                        ? "bg-blue-900/50"
                         : ""
                     }`}
                   >
-                    <td className="px-4 py-3 font-medium text-gray-800">
+                    <td className="px-4 py-3 font-medium text-gray-100">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span>{inv.invoice_number || "--"}</span>
                         {inv.is_duplicate && (
@@ -252,20 +252,20 @@ export default function InvoicesPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600 max-w-32 truncate">{inv.vendor_name || "--"}</td>
-                    <td className="px-4 py-3 text-gray-500">{inv.invoice_date || "--"}</td>
-                    <td className="px-4 py-3 font-medium">{fmt(inv.total_amount, inv.currency)}</td>
+                    <td className="px-4 py-3 text-gray-300 max-w-32 truncate">{inv.vendor_name || "--"}</td>
+                    <td className="px-4 py-3 text-gray-400">{inv.invoice_date || "--"}</td>
+                    <td className="px-4 py-3 font-medium text-gray-100">{fmt(inv.total_amount, inv.currency)}</td>
                     <td className="px-4 py-3"><StatusBadge status={inv.validation_status} /></td>
                     <td className="px-4 py-3"><StatusBadge status={inv.extraction_status} /></td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                         {inv.is_duplicate && (
-                          <AlertTriangle className="text-yellow-500" size={15} title="Duplicate" />
+                          <AlertTriangle className="text-yellow-400" size={15} title="Duplicate" />
                         )}
-                        <button onClick={() => handleValidate(inv.id)} title="Re-validate" className="text-blue-500 hover:text-blue-700">
+                        <button onClick={() => handleValidate(inv.id)} title="Re-validate" className="text-blue-400 hover:text-blue-300">
                           <CheckCircle size={15} />
                         </button>
-                        <button onClick={() => handleDelete(inv.id)} title="Delete" className="text-red-400 hover:text-red-600">
+                        <button onClick={() => handleDelete(inv.id)} title="Delete" className="text-red-400 hover:text-red-300">
                           <Trash2 size={15} />
                         </button>
                       </div>
@@ -277,8 +277,8 @@ export default function InvoicesPage() {
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-              <p className="text-xs text-gray-500">Page {page} of {totalPages}</p>
+            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-800">
+              <p className="text-xs text-gray-400">Page {page} of {totalPages}</p>
               <div className="flex gap-2">
                 <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="btn-secondary p-1.5 disabled:opacity-40">
                   <ChevronLeft size={14} />
@@ -296,12 +296,12 @@ export default function InvoicesPage() {
         <div className="w-80 shrink-0 space-y-4">
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-gray-800">Invoice Details</h2>
-              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+              <h2 className="font-semibold text-gray-100">Invoice Details</h2>
+              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-200 text-xl leading-none">&times;</button>
             </div>
             <div className="space-y-3 text-sm">
               {duplicateGroup.length > 1 && (
-                <div className="text-yellow-600 font-medium mb-2">
+                <div className="text-yellow-400 font-medium mb-2">
                   Warning: {duplicateGroup.length} duplicate invoices found
                 </div>
               )}
@@ -317,18 +317,18 @@ export default function InvoicesPage() {
                 ["Payment Terms", selected.payment_method],
                 ["Currency", selected.currency],
               ].map(([k, v]) => (
-                <div key={k} className="flex justify-between border-b border-gray-50 pb-2">
-                  <span className="text-gray-500">{k}</span>
-                  <span className="font-medium text-gray-800 text-right max-w-40 break-all">{v || "--"}</span>
+                <div key={k} className="flex justify-between border-b border-slate-800/60 pb-2">
+                  <span className="text-gray-400">{k}</span>
+                  <span className="font-medium text-gray-100 text-right max-w-40 break-all">{v || "--"}</span>
                 </div>
               ))}
-              <div className="rounded-lg border border-gray-100 p-3 space-y-3">
+              <div className="rounded-lg border border-slate-800 p-3 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Invoice Status</span>
+                  <span className="text-gray-400">Invoice Status</span>
                   <StatusBadge status={selected.validation_status} />
                 </div>
                 {selected.validation_status === "complete" && (
-                  <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-700 space-y-1">
+                  <div className="bg-blue-900/30 rounded-lg p-3 text-xs text-blue-200 space-y-1">
                     <div className="flex items-center gap-1.5 font-semibold">
                       <Info size={13} /> Information
                     </div>
@@ -338,63 +338,63 @@ export default function InvoicesPage() {
                 )}
               </div>
 
-              <div className="rounded-lg border border-gray-100 p-3">
-                <p className="text-xs font-semibold text-gray-700 mb-2">Extraction Summary</p>
+              <div className="rounded-lg border border-slate-800 p-3">
+                <p className="text-xs font-semibold text-gray-200 mb-2">Extraction Summary</p>
                 <div className="space-y-3">
                   <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1">Required Fields</p>
+                    <p className="text-xs font-medium text-gray-400 mb-1">Required Fields</p>
                     <div className="space-y-1">
                       {requiredFields.map((label) => (
-                        <div key={label} className="flex items-center gap-2 text-xs">
-                          <CheckCircle size={13} className={fieldAvailable(selected, label) ? "text-green-500" : "text-orange-500"} />
+                        <div key={label} className="flex items-center gap-2 text-xs text-gray-300">
+                          <CheckCircle size={13} className={fieldAvailable(selected, label) ? "text-green-500" : "text-orange-400"} />
                           <span>{label}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1">Optional Information</p>
+                    <p className="text-xs font-medium text-gray-400 mb-1">Optional Information</p>
                     <div className="space-y-1">
                       {optionalFields.map((label) => (
-                        <div key={label} className="flex items-center gap-2 text-xs">
-                          <span className={fieldAvailable(selected, label) ? "text-green-600" : "text-gray-400"}>
+                        <div key={label} className="flex items-center gap-2 text-xs text-gray-300">
+                          <span className={fieldAvailable(selected, label) ? "text-green-500" : "text-gray-500"}>
                             {fieldAvailable(selected, label) ? "✔" : "○"}
                           </span>
                           <span>{label}</span>
                         </div>
                       ))}
                     </div>
-                    <p className="text-[11px] text-gray-400 mt-2">Legend: ✔ Available · ○ Not Available</p>
+                    <p className="text-[11px] text-gray-500 mt-2">Legend: ✔ Available · ○ Not Available</p>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-100 p-3 space-y-2">
+              <div className="rounded-lg border border-slate-800 p-3 space-y-2">
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Required</span>
-                  <span className="font-semibold">{selected.required_score ?? summary(selected).required_score ?? 0}%</span>
+                  <span className="text-gray-400">Required</span>
+                  <span className="font-semibold text-gray-200">{selected.required_score ?? summary(selected).required_score ?? 0}%</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">Optional</span>
-                  <span className="font-semibold">{selected.optional_score ?? summary(selected).optional_score ?? 0}%</span>
+                  <span className="text-gray-400">Optional</span>
+                  <span className="font-semibold text-gray-200">{selected.optional_score ?? summary(selected).optional_score ?? 0}%</span>
                 </div>
-                <div className="flex justify-between text-sm border-t border-gray-100 pt-2">
-                  <span className="text-gray-600 font-medium">Extraction Quality</span>
-                  <span className="font-bold text-gray-900">{selected.extraction_score ?? summary(selected).extraction_score ?? 0}%</span>
+                <div className="flex justify-between text-sm border-t border-slate-800 pt-2">
+                  <span className="text-gray-300 font-medium">Extraction Quality</span>
+                  <span className="font-bold text-gray-100">{selected.extraction_score ?? summary(selected).extraction_score ?? 0}%</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 font-medium">AI Confidence</span>
-                  <span className="font-bold text-gray-900">{selected.ai_confidence ?? summary(selected).ai_confidence ?? 0}%</span>
+                  <span className="text-gray-300 font-medium">AI Confidence</span>
+                  <span className="font-bold text-gray-100">{selected.ai_confidence ?? summary(selected).ai_confidence ?? 0}%</span>
                 </div>
               </div>
 
               {missingOptional(selected).length > 0 && (
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs font-medium text-gray-700 mb-2">Missing Optional Information</p>
+                <div className="bg-slate-800/40 rounded-lg p-3">
+                  <p className="text-xs font-medium text-gray-200 mb-2">Missing Optional Information</p>
                   <div className="space-y-1">
                     {missingOptional(selected).map((item) => (
-                      <p key={item} className="flex items-center gap-2 text-xs text-gray-600">
-                        <Info size={13} className="text-gray-400" /> {item}
+                      <p key={item} className="flex items-center gap-2 text-xs text-gray-300">
+                        <Info size={13} className="text-gray-500" /> {item}
                       </p>
                     ))}
                   </div>
@@ -402,40 +402,40 @@ export default function InvoicesPage() {
               )}
 
               {selected.is_duplicate && (
-                <div className="flex items-center gap-2 text-yellow-600 bg-yellow-50 p-2 rounded-lg text-xs">
+                <div className="flex items-center gap-2 text-yellow-300 bg-yellow-900/30 p-2 rounded-lg text-xs">
                   <AlertTriangle size={13} /> Duplicate invoice
                 </div>
               )}
               {selected.validation_errors?.length > 0 && (
                 <div className={`rounded-lg p-3 ${
                   selected.validation_status === "failed"
-                    ? "bg-red-50"
+                    ? "bg-red-900/30"
                     : selected.validation_status === "needs_review"
-                      ? "bg-orange-50"
-                      : "bg-gray-50"
+                      ? "bg-orange-900/30"
+                      : "bg-slate-800/40"
                 }`}>
                   <p className={`text-xs font-medium mb-1 ${
                     selected.validation_status === "failed"
-                      ? "text-red-700"
+                      ? "text-red-300"
                       : selected.validation_status === "needs_review"
-                        ? "text-orange-700"
-                        : "text-gray-700"
+                        ? "text-orange-300"
+                        : "text-gray-200"
                   }`}>
                     {selected.validation_status === "failed" ? "Processing Failed:" : selected.validation_status === "needs_review" ? "Required Review:" : "Notes:"}
                   </p>
                   {selected.validation_errors.map((e, i) => (
                     <p key={i} className={`text-xs ${
                       selected.validation_status === "failed"
-                        ? "text-red-600"
+                        ? "text-red-300"
                         : selected.validation_status === "needs_review"
-                          ? "text-orange-600"
-                          : "text-gray-600"
+                          ? "text-orange-300"
+                          : "text-gray-300"
                     }`}>- {e}</p>
                   ))}
                 </div>
               )}
               {selected.processing_time_ms && (
-                <p className="text-xs text-gray-400">Processed in {selected.processing_time_ms}ms</p>
+                <p className="text-xs text-gray-500">Processed in {selected.processing_time_ms}ms</p>
               )}
             </div>
           </div>

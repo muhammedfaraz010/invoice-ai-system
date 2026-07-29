@@ -67,8 +67,8 @@ export default function DeleteRequestsPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Delete Requests</h1>
-          <p className="text-sm text-gray-500">Approve or reject pending invoice deletion requests.</p>
+          <h1 className="text-2xl font-bold text-gray-100">Delete Requests</h1>
+          <p className="text-sm text-gray-400">Approve or reject pending invoice deletion requests.</p>
         </div>
         <button onClick={load} className="btn-secondary flex items-center gap-2">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
@@ -76,7 +76,7 @@ export default function DeleteRequestsPage() {
       </div>
 
       <div className="card p-0 overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 font-semibold">Invoice Deletion Requests</div>
+        <div className="px-4 py-3 border-b border-slate-800 font-semibold text-gray-100">Invoice Deletion Requests</div>
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
@@ -85,21 +85,21 @@ export default function DeleteRequestsPage() {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody className="divide-y divide-slate-800/60">
             {requests.map((item) => (
               <tr key={item.id}>
-                <td className="px-4 py-3 font-mono text-xs">{item.invoice_id}</td>
-                <td className="px-4 py-3 font-mono text-xs">{item.requested_by}</td>
-                <td className="px-4 py-3">{item.status}</td>
-                <td className="px-4 py-3">{item.reason || "--"}</td>
-                <td className="px-4 py-3 text-gray-500">{item.created_at}</td>
+                <td className="px-4 py-3 font-mono text-xs text-gray-300">{item.invoice_id}</td>
+                <td className="px-4 py-3 font-mono text-xs text-gray-300">{item.requested_by}</td>
+                <td className="px-4 py-3 text-gray-200">{item.status}</td>
+                <td className="px-4 py-3 text-gray-300">{item.reason || "--"}</td>
+                <td className="px-4 py-3 text-gray-400">{item.created_at}</td>
                 <td className="px-4 py-3">
                   {item.status === "Pending" && (
                     <div className="flex justify-end gap-2">
-                      <button onClick={() => decide(item.id, true)} className="text-green-600 hover:text-green-700" title="Approve">
+                      <button onClick={() => decide(item.id, true)} className="text-green-400 hover:text-green-300" title="Approve">
                         <CheckCircle size={18} />
                       </button>
-                      <button onClick={() => decide(item.id, false)} className="text-red-600 hover:text-red-700" title="Reject">
+                      <button onClick={() => decide(item.id, false)} className="text-red-400 hover:text-red-300" title="Reject">
                         <XCircle size={18} />
                       </button>
                     </div>
@@ -115,7 +115,7 @@ export default function DeleteRequestsPage() {
       </div>
 
       <div className="card p-0 overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 font-semibold">Account Deletion Requests</div>
+        <div className="px-4 py-3 border-b border-slate-800 font-semibold text-gray-100">Account Deletion Requests</div>
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
@@ -124,21 +124,21 @@ export default function DeleteRequestsPage() {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody className="divide-y divide-slate-800/60">
             {userRequests.map((item) => (
               <tr key={item.id}>
-                <td className="px-4 py-3 font-mono text-xs">{item.target_user}</td>
-                <td className="px-4 py-3 font-mono text-xs">{item.requested_by}</td>
-                <td className="px-4 py-3">{item.status}</td>
-                <td className="px-4 py-3">{item.reason || "--"}</td>
-                <td className="px-4 py-3 text-gray-500">{item.created_at}</td>
+                <td className="px-4 py-3 font-mono text-xs text-gray-300">{item.target_user}</td>
+                <td className="px-4 py-3 font-mono text-xs text-gray-300">{item.requested_by}</td>
+                <td className="px-4 py-3 text-gray-200">{item.status}</td>
+                <td className="px-4 py-3 text-gray-300">{item.reason || "--"}</td>
+                <td className="px-4 py-3 text-gray-400">{item.created_at}</td>
                 <td className="px-4 py-3">
                   {item.status === "Pending" && (
                     <div className="flex justify-end gap-2">
-                      <button onClick={() => decideUser(item.id, true)} className="text-green-600 hover:text-green-700" title="Approve">
+                      <button onClick={() => decideUser(item.id, true)} className="text-green-400 hover:text-green-300" title="Approve">
                         <CheckCircle size={18} />
                       </button>
-                      <button onClick={() => decideUser(item.id, false)} className="text-red-600 hover:text-red-700" title="Reject">
+                      <button onClick={() => decideUser(item.id, false)} className="text-red-400 hover:text-red-300" title="Reject">
                         <XCircle size={18} />
                       </button>
                     </div>

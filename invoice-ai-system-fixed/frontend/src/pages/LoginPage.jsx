@@ -28,44 +28,48 @@ export default function LoginPage({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 w-full max-w-md p-8">
+    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-gradient-to-br from-slate-900 via-primary-900 to-slate-950">
+      {/* Ambient glow accents */}
+      <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary-500/20 rounded-full blur-3xl" />
+      <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl" />
+
+      <div className="relative bg-slate-800/60 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/40 border border-slate-700/60 w-full max-w-md p-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-2xl mb-4">
-            <ShieldCheck className="text-blue-600" size={32} />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-500 to-cyan-500 rounded-2xl mb-4 shadow-lg shadow-primary-900/50">
+            <ShieldCheck className="text-white" size={32} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Invoice AI System</h1>
-          <p className="text-gray-500 text-sm mt-1">Sign in to continue</p>
+          <h1 className="text-2xl font-bold text-white">Invoice AI System</h1>
+          <p className="text-slate-400 text-sm mt-1">Sign in to continue</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Username</label>
             <input
               type="text"
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full bg-slate-900/60 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
               placeholder="Enter username"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Password</label>
             <div className="relative">
               <input
                 type={showPass ? "text" : "password"}
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
+                className="w-full bg-slate-900/60 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent pr-10"
                 placeholder="Enter password"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPass(!showPass)}
-                className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300"
               >
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -74,17 +78,17 @@ export default function LoginPage({ onLogin }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2.5 rounded-lg transition-colors text-sm"
+            className="w-full bg-gradient-to-r from-primary-600 to-cyan-600 hover:from-primary-500 hover:to-cyan-500 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-all text-sm shadow-lg shadow-primary-900/40"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
         <div className="mt-5 flex items-center justify-between text-sm">
-          <Link to="/forgot-password" className="text-blue-600 hover:text-blue-700">
+          <Link to="/forgot-password" className="text-cyan-400 hover:text-cyan-300">
             Forgot password?
           </Link>
-          <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+          <Link to="/register" className="text-cyan-400 hover:text-cyan-300 font-medium">
             Create account
           </Link>
         </div>

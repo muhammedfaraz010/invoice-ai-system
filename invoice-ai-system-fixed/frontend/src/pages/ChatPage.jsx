@@ -186,7 +186,7 @@ export default function ChatPage() {
             onKeyDown={handleKey}
             placeholder="Ask about your invoices... (Enter to send)"
             rows={1}
-            className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             style={{ minHeight: "44px", maxHeight: "120px" }}
           />
           <button

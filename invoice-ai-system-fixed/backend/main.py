@@ -21,7 +21,7 @@ from fastapi import (
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
@@ -50,6 +50,7 @@ from modules.validation import (
 from modules.embeddings import embedding_store
 from modules.rag import rag_engine
 from modules.agents import invoice_agent
+from modules.reports import build_report_rows, generate_excel_report, generate_pdf_report
 from utils.auth import (
     hash_password, verify_password, create_access_token, create_refresh_token,
     get_current_user, create_admin_user, require_role, ALGORITHM
@@ -1045,6 +1046,31 @@ def download_invoice(
         raise HTTPException(404, "Invoice not found")
     return FileResponse(invoice.file_path, filename=invoice.filename)
 
+@app.get("/api/reports/export", tags=["Reports"])
+def export_invoice_report(
+    format: str = Query("xlsx", pattern="^(xlsx|pdf)$"),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Export an invoice amount & tax report as Excel or PDF."""
+    invoices = scoped_invoice_query(db, user).order_by(desc(Invoice.upload_time)).all()
+    rows = build_report_rows(invoices)
+
+    if format == "pdf":
+        content = generate_pdf_report(rows)
+        media_type = "application/pdf"
+        filename = f"invoice_report_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.pdf"
+    else:
+        content = generate_excel_report(rows)
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        filename = f"invoice_report_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.xlsx"
+
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
 
 @app.delete("/api/invoice/{invoice_id}", tags=["Invoice"])
 def delete_invoice(
@@ -1335,6 +1361,62 @@ def list_audit_log(
 
 
 # ──────────────────────────────────────────────────────
+# ADMIN OVERVIEW ROUTE
+# ──────────────────────────────────────────────────────
+
+@app.get("/api/admin/overview", tags=["Admin"])
+def get_admin_overview(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_role("admin")),
+):
+    """System-wide overview for the admin dashboard."""
+    active_users = db.query(User).filter(User.is_active == True).count()
+    total_invoices = db.query(Invoice).filter(Invoice.deleted_at.is_(None)).count()
+    pending_review = db.query(Invoice).filter(
+        Invoice.validation_status.in_([STATUS_NEEDS_REVIEW, "invalid"]),
+        Invoice.deleted_at.is_(None),
+    ).count()
+    pending_delete_requests = db.query(DeleteRequest).filter(DeleteRequest.status == "Pending").count()
+
+    recent_invoices = (
+        db.query(Invoice)
+        .filter(Invoice.deleted_at.is_(None))
+        .order_by(desc(Invoice.upload_time))
+        .limit(10)
+        .all()
+    )
+    activity_by_user = {}
+    for inv in recent_invoices:
+        owner = db.query(User).filter(User.id == inv.owner_id).first()
+        if not owner:
+            continue
+        key = owner.id
+        if key not in activity_by_user:
+            last_login = (
+                db.query(AuditLog)
+                .filter(AuditLog.actor_id == owner.id, AuditLog.action == "user.login")
+                .order_by(desc(AuditLog.created_at))
+                .first()
+            )
+            activity_by_user[key] = {
+                "username": owner.full_name or owner.username,
+                "invoice_count": 0,
+                "last_login": str(last_login.created_at) if last_login else None,
+            }
+        activity_by_user[key]["invoice_count"] += 1
+
+    recent_activity = list(activity_by_user.values())[:5]
+
+    return {
+        "active_users": active_users,
+        "total_invoices": total_invoices,
+        "pending_review": pending_review,
+        "pending_delete_requests": pending_delete_requests,
+        "recent_activity": recent_activity,
+    }
+
+
+# ──────────────────────────────────────────────────────
 # VALIDATE ROUTE
 # ──────────────────────────────────────────────────────
 
@@ -1401,7 +1483,8 @@ def chat_query(
         result = rag_engine.query(
             request.question,
             db,
-            owner_id=user.id,
+            caller_id=user.id,
+            caller_role=user.role,
         )
 
         history = ChatHistory(
